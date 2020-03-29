@@ -1,6 +1,6 @@
 FROM python:3.7-slim
 
-COPY ./flask_app/requirements.txt /app/requirements.txt
+COPY flask_app /app
 
 WORKDIR /app
 
@@ -11,7 +11,5 @@ RUN apt-get clean \
     && apt-get -y install build-essential \
     && pip install -r requirements.txt \
     && rm -rf /var/cache/apk/*
-
-COPY ./flask_app /app
 
 CMD ["uwsgi", "--ini", "uwsgi.ini"]
