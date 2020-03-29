@@ -4,7 +4,7 @@ services:
   nginx:
     image: nginx:1.15-alpine
     depends_on:
-      - duels-miniapp-api
+      - duels_miniapp_api
     ports:
       - "80:80"
       - "443:443"
@@ -19,7 +19,7 @@ services:
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
 
-  duels-miniapp-api:
+  duels_miniapp_api:
     image: duels-miniapp-api
     build:
       context: .
