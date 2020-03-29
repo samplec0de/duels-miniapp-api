@@ -8,12 +8,10 @@ def hello_world():
     return 'Hello World!'
 
 
-@app.route('/tasks/<subject>/<difficulty>/<task_id>', methods=['GET'])
-def get_subject(subject, difficulty, task_id):
+@app.route('/tasks/<subject>/<task_id>', methods=['GET'])
+def get_subject(subject, task_id):
     if subject not in ["math", "informatics", "russian"]:
         return jsonify({"error": "unknown subject"}), 400
-    if not difficulty.isdigit() or int(difficulty) < 1 or int(difficulty) > 3:
-        return jsonify({"error": "incorrect difficulty"}), 400
     if not task_id.isdigit() or int(task_id) not in [0, 1, 2]:
         return jsonify({"error": "task id not found"}), 404
     tasks = {
@@ -33,7 +31,7 @@ def get_subject(subject, difficulty, task_id):
             2: "Снова лень думать, ответ: 2",
         }
     }
-    return jsonify({"subject": subject, "id": task_id, "difficulty": difficulty, "task": tasks[subject][int(task_id)]}), 200
+    return jsonify({"subject": subject, "id": task_id, "task": tasks[subject][int(task_id)]}), 200
 
 
 @app.route('/check_answer', methods=['POST'])
