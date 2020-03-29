@@ -12,4 +12,4 @@ RUN apt-get clean \
     && pip install -r requirements.txt \
     && rm -rf /var/cache/apk/*
 
-CMD ["uwsgi", "--ini", "uwsgi.ini"]
+CMD ["uwsgi", "--ini", "/app/uwsgi.ini"]
