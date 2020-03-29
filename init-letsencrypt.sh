@@ -1,6 +1,6 @@
 #!/bin/bash
 
-domains=(example.com www.example.com)
+domains=(api.duels.asimple.ru)
 rsa_key_size=4096
 data_path="./data/certbot"
 email="admin@asimple.ru" # Adding a valid address is strongly recommended
