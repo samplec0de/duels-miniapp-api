@@ -12,6 +12,7 @@ services:
       - ./data/nginx:/etc/nginx/conf.d
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
+      - ./data/static/www:/var/www/static
 
   certbot:
     image: certbot/certbot
