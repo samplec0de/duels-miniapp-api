@@ -1,11 +1,20 @@
+from pathlib import Path
+
 from flask import Flask, jsonify, request
+from pymongo import MongoClient
+from yaml import safe_load
 
 app = Flask(__name__)
+config = safe_load((Path(__file__).parent / "config.yml").read_text())
+client = MongoClient(f"mongodb://{config['mongo']['user']}:"
+                     f"{config['mongo']['password']}@{config['mongo']['host']}:"
+                     f"{config['mongo']['port']}/{config['mongo']['authdb']}")
+tasks_db = client['tasks']
 
 
 @app.route('/')
 def hello_world():
-    return 'Hello World!'
+    return jsonify({'version': config['core']['version']})
 
 
 @app.route('/tasks/<subject>/<task_id>', methods=['GET'])
@@ -38,11 +47,11 @@ def get_subject(subject, task_id):
 def check_answer():
     form_data = request.form
     if 'answer' not in form_data:
-        return jsonify({"error": "answer is required form-data key"}), 400
+        return jsonify({"error": "answer is required form-data key"}), 401
     if 'subject' not in form_data:
-        return jsonify({"error": "subject is required form-data key"}), 400
+        return jsonify({"error": "subject is required form-data key"}), 402
     if 'task_id' not in form_data:
-        return jsonify({"error": "task_id is required form-data key"}), 400
+        return jsonify({"error": "task_id is required form-data key"}), 403
     answer = form_data['answer']
     subject = form_data['subject']
     task_id = form_data['task_id']

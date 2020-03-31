@@ -1,2 +1,4 @@
 flask
 uWSGI
+pymongo
+PyYAML
