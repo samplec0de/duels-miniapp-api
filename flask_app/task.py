@@ -23,7 +23,7 @@ class Task:
 
     def from_db(self, task_id: str, subject: str, client: Database) -> None:
         collection = client[subject]
-        meta = collection.find_one({'task_id': {'$in': task_id}})
+        meta = collection.find_one({'task_id': {'$eq': task_id}})
         if not meta:
             raise TaskNotFound(f"Task with id {task_id} not found.")
         self.subject = subject
