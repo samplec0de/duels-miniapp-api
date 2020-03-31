@@ -1,4 +1,8 @@
+from bson import ObjectId
 from pymongo.database import Database
+
+from flask_app.states import TASK_GIVEN, TASK_SUCCESS, TASK_FAILED
+from flask_app.utility import unix
 
 
 class User:
@@ -20,3 +24,15 @@ class User:
 
     def _find(self) -> dict:
         return self.collection.find_one({'vk_id': {'$eq': self.vk_id}})
+
+    def add_task(self, task_id: str):
+        self.tasks[ObjectId(task_id)] = (TASK_PENDING, unix())
+        self.collection.find_one_and_update({'_id': self.id}, {'tasks': self.tasks})
+
+    def task_success(self, task_id: str):
+        self.tasks[ObjectId(task_id)] = (TASK_SUCCESS, unix())
+        self.collection.find_one_and_update({'_id': self.id}, {'tasks': self.tasks})
+
+    def task_failed(self, task_id: str):
+        self.tasks[ObjectId(task_id)] = (TASK_FAILED, unix())
+        self.collection.find_one_and_update({'_id': self.id}, {'tasks': self.tasks})
