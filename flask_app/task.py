@@ -1,5 +1,6 @@
 from typing import List
 
+from bson import ObjectId
 from pymongo.database import Database
 
 
@@ -23,14 +24,14 @@ class Task:
 
     def from_db(self, task_id: str, subject: str, client: Database) -> None:
         collection = client[subject]
-        meta = collection.find_one({'task_id': {'$eq': task_id}})
+        meta = collection.find_one({'task_id': {'$eq': ObjectId(task_id)}})
         if not meta:
             raise TaskNotFound(f"Task with id {task_id} not found.")
         self.subject = subject
         self.text = meta.get('text')
         self.answer = meta.get('answer')
         self.variants = meta.get('variants')
-        self.id = task_id
+        self.id = meta.get('id')
 
     def create(self, subject: str, text: str, variants: List[str], answer: int, client: Database) -> str:
         self.subject = subject
