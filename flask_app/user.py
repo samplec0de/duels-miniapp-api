@@ -1,7 +1,7 @@
 from bson import ObjectId
 from pymongo.database import Database
 
-from flask_app.states import TASK_GIVEN, TASK_SUCCESS, TASK_FAILED
+from flask_app.states import TASK_SUCCESS, TASK_FAILED, TASK_PENDING
 from flask_app.utility import unix
 
 
