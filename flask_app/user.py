@@ -25,7 +25,7 @@ class User:
     def _find(self) -> dict:
         return self.collection.find_one({'vk_id': {'$eq': self.vk_id}})
 
-    def add_task(self, task_id: str) -> None:
+    def give_task(self, task_id: str) -> None:
         self.tasks[ObjectId(task_id)] = (TASK_PENDING, unix())
         self.collection.find_one_and_update({'_id': self.id}, {'tasks': self.tasks})
 
