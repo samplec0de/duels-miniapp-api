@@ -7,14 +7,14 @@ from flask_app.utility import unix
 
 
 class AppUser:
-    __slots__ = ('id', 'vk_id', 'rating', 'collection', 'client')
+    __slots__ = ('id', 'vk_id', 'rating', 'collection', 'database')
 
-    def __init__(self, vk_id: int, client: Database):
+    def __init__(self, vk_id: int, database: Database):
         self.id = None  # ObjectId из mongo
         self.vk_id = vk_id  # user_id из vk api
         self.rating = None  # рейтинг игрока
-        self.collection = client['users']
-        self.client = client
+        self.collection = database['users']
+        self.database = database
         data = self._find()
         if data:
             self.id = data.get('_id')
@@ -35,7 +35,7 @@ class AppUser:
         :return:
         """
         # tasks - словарь. ключ: task_id, значение: (статус, unix time stamp) (task_id: статус)
-        subj_collection = self.client['data'][f'users_{subject}']
+        subj_collection = self.database[f'users_{subject}']
         result = subj_collection.find_one({'_id': self.id})
         if result:
             tasks = result['tasks']
@@ -52,9 +52,9 @@ class AppUser:
         :param subject:
         :return:
         """
-        task = EducationalTask(task_id=task_id, subject=subject, client=self.client)
+        task = EducationalTask(task_id=task_id, subject=subject, database=self.database)
         self.rating += task.weight
-        subj_collection = self.client['data'][f'users_{subject}']
+        subj_collection = self.database[f'users_{subject}']
         result = subj_collection.find_one({'_id': self.id})
         tasks = result['tasks']
         tasks[ObjectId(task_id)] = (TASK_SUCCESS, unix())
@@ -68,7 +68,7 @@ class AppUser:
         :param subject:
         :return:
         """
-        subj_collection = self.client['data'][f'users_{subject}']
+        subj_collection = self.database[f'users_{subject}']
         result = subj_collection.find_one({'_id': self.id})
         tasks = result['tasks']
         tasks[ObjectId(task_id)] = (TASK_FAILED, unix())
