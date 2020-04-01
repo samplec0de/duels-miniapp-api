@@ -1,5 +1,4 @@
-from bson import ObjectId
-from pymongo.database import Database
+from pymongo import MongoClient
 
 from flask_app.EducationalTask import EducationalTask
 from flask_app.states import TASK_SUCCESS, TASK_FAILED, TASK_PENDING
@@ -7,14 +6,13 @@ from flask_app.utility import unix
 
 
 class AppUser:
-    __slots__ = ('id', 'vk_id', 'rating', 'collection', 'database')
+    __slots__ = ('id', 'vk_id', 'rating', 'mongo')
 
-    def __init__(self, vk_id: int, database: Database):
+    def __init__(self, vk_id: int, mongo: MongoClient):
         self.id = None  # ObjectId из mongo
         self.vk_id = vk_id  # user_id из vk api
         self.rating = None  # рейтинг игрока
-        self.collection = database['users']
-        self.database = database
+        self.mongo = mongo
         data = self._find()
         if data:
             self.id = data.get('_id')
@@ -22,10 +20,10 @@ class AppUser:
             self.rating = data.get('rating')
         else:
             user = {'vk_id': self.vk_id, 'rating': 0}
-            self.id = self.collection.insert_one(user).inserted_id
+            self.id = self.mongo['data']['users'].insert_one(user).inserted_id
 
     def _find(self) -> dict:
-        return self.collection.find_one({'vk_id': {'$eq': self.vk_id}})
+        return self.mongo['data']['users'].find_one({'vk_id': self.vk_id})
 
     def give_task(self, task_id: str, subject: str) -> None:
         """
@@ -35,14 +33,14 @@ class AppUser:
         :return:
         """
         # tasks - словарь. ключ: task_id, значение: (статус, unix time stamp) (task_id: статус)
-        subj_collection = self.database[f'users_{subject}']
+        subj_collection = self.mongo['data'][f'users_{subject}']
         result = subj_collection.find_one({'_id': self.id})
         if result:
             tasks = result['tasks']
-            tasks[ObjectId(task_id)] = (TASK_PENDING, unix())
-            subj_collection.find_one_and_update({'vk_id': self.vk_id}, {'tasks': tasks})
+            tasks[task_id] = (TASK_PENDING, unix())
+            subj_collection.find_one_and_update({'vk_id': self.vk_id}, {'$set': {'tasks': tasks}})
         else:
-            tasks = {ObjectId(task_id): (TASK_PENDING, unix())}
+            tasks = {task_id: (TASK_PENDING, unix())}
             subj_collection.insert_one({'vk_id': self.vk_id, 'tasks': tasks})
 
     def task_success(self, task_id: str, subject: str) -> None:
@@ -52,14 +50,14 @@ class AppUser:
         :param subject:
         :return:
         """
-        task = EducationalTask(task_id=task_id, subject=subject, database=self.database)
+        task = EducationalTask(task_id=task_id, subject=subject, mongo=self.mongo)
         self.rating += task.weight
-        subj_collection = self.database[f'users_{subject}']
-        result = subj_collection.find_one({'_id': self.id})
+        subj_collection = self.mongo['data'][f'users_{subject}']
+        result = subj_collection.find_one({'vk_id': self.vk_id})
         tasks = result['tasks']
-        tasks[ObjectId(task_id)] = (TASK_SUCCESS, unix())
-        subj_collection.find_one_and_update({'vk_id': self.vk_id}, {'tasks': tasks})
-        self.collection.find_one_and_replace({'_id': self.id}, {'rating': self.rating})
+        tasks[task_id] = (TASK_SUCCESS, unix())
+        subj_collection.find_one_and_update({'vk_id': self.vk_id}, {'$set': {'tasks': tasks}})
+        self.mongo['data']['users'].find_one_and_update({'_id': self.id}, {'$set': {'rating': self.rating}})
 
     def task_failed(self, task_id: str, subject: str) -> None:
         """
@@ -68,8 +66,8 @@ class AppUser:
         :param subject:
         :return:
         """
-        subj_collection = self.database[f'users_{subject}']
+        subj_collection = self.mongo['data'][f'users_{subject}']
         result = subj_collection.find_one({'_id': self.id})
         tasks = result['tasks']
-        tasks[ObjectId(task_id)] = (TASK_FAILED, unix())
-        subj_collection.find_one_and_update({'vk_id': self.vk_id}, {'tasks': tasks})
+        tasks[task_id] = (TASK_FAILED, unix())
+        subj_collection.find_one_and_update({'vk_id': self.vk_id}, {'$set': {'tasks': tasks}})

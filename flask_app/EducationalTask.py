@@ -1,6 +1,7 @@
 from typing import List
 
 from bson import ObjectId
+from pymongo import MongoClient
 from pymongo.database import Database
 
 
@@ -15,18 +16,18 @@ class TaskNotFound(TaskException):
 class EducationalTask:
     __slots__ = ('text', 'answer', 'variants', 'id', 'subject', 'weight')
 
-    def __init__(self, task_id: str = None, subject: str = None, database: Database = None):
+    def __init__(self, task_id: str = None, subject: str = None, mongo: MongoClient = None):
         self.subject = None  # предмет
         self.text = None  # текст вопроса
         self.answer = None  # индекс правильного ответа (с нуля)
         self.variants = None  # массив варивантов ответа
         self.id = None  # ObjectId в mongo
         self.weight = None  # сколько баллов будет начислено в случае верного решения
-        if task_id and subject and database:
-            self.from_db(task_id=task_id, subject=subject, database=database)
+        if task_id and subject and mongo:
+            self.from_db(task_id=task_id, subject=subject, mongo=mongo)
 
-    def from_db(self, task_id: str, subject: str, database: Database) -> None:
-        collection = database[subject]
+    def from_db(self, task_id: str, subject: str, mongo: MongoClient) -> None:
+        collection = mongo['tasks'][subject]
         meta = collection.find_one({'_id': ObjectId(task_id)})
         if not meta:
             raise TaskNotFound(f"Task with id {task_id} not found.")
