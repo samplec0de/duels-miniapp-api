@@ -10,6 +10,7 @@ client = MongoClient(f"mongodb://{config['mongo']['user']}:"
                      f"{config['mongo']['password']}@{config['mongo']['host']}:"
                      f"{config['mongo']['port']}/{config['mongo']['authdb']}")
 tasks_db = client['tasks']
+data_db = client['data']
 
 
 @app.route('/')
