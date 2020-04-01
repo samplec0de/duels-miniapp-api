@@ -6,7 +6,7 @@ from flask_app.states import TASK_SUCCESS, TASK_FAILED, TASK_PENDING
 from flask_app.utility import unix
 
 
-class User:
+class AppUser:
     __slots__ = ('id', 'vk_id', 'rating', 'collection', 'client')
 
     def __init__(self, vk_id: int, client: Database):
