@@ -13,14 +13,15 @@ class TaskNotFound(TaskException):
 
 
 class Task:
-    __slots__ = ('text', 'answer', 'variants', 'id', 'subject')
+    __slots__ = ('text', 'answer', 'variants', 'id', 'subject', 'weight')
 
     def __init__(self):
-        self.subject = None
-        self.text = None
-        self.answer = None
-        self.variants = None
-        self.id = None
+        self.subject = None  # предмет
+        self.text = None  # текст вопроса
+        self.answer = None  # индекс правильного ответа (с нуля)
+        self.variants = None  # массив варивантов ответа
+        self.id = None  # ObjectId в mongo
+        self.weight = None  # сколько баллов будет начислено в случае верного решения
 
     def from_db(self, task_id: str, subject: str, client: Database) -> None:
         collection = client[subject]
