@@ -33,14 +33,22 @@ class Task:
         self.answer = meta.get('answer')
         self.variants = meta.get('variants')
         self.id = meta.get('id')
+        self.weight = meta.get('weight')
 
-    def create(self, subject: str, text: str, variants: List[str], answer: int, client: Database) -> str:
+    def create(self, subject: str, text: str, variants: List[str], answer: int, weight: int, client: Database) -> str:
         self.subject = subject
         self.text = text
         self.answer = answer
         self.variants = variants
+        self.weight = weight
         collection = client[subject]
-        result = collection.insert_one({'text': text, 'answer': answer, 'variants': variants})
+        task_data = {
+            'text': text,
+            'answer': answer,
+            'weight': weight,
+            'variants': variants
+        }
+        result = collection.insert_one(task_data)
         self.id = result.inserted_id
         return self.id
 
