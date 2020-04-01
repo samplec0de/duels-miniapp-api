@@ -12,7 +12,7 @@ class TaskNotFound(TaskException):
     pass
 
 
-class Task:
+class EducationalTask:
     __slots__ = ('text', 'answer', 'variants', 'id', 'subject', 'weight')
 
     def __init__(self):
