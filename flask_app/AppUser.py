@@ -13,7 +13,7 @@ class AppUser:
         self.id = None  # ObjectId из mongo
         self.vk_id = vk_id  # user_id из vk api
         self.rating = None  # рейтинг игрока
-        self.collection = client['data']['users']
+        self.collection = client['users']
         self.client = client
         data = self._find()
         if data:
