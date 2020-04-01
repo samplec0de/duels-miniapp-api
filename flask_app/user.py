@@ -25,14 +25,14 @@ class User:
     def _find(self) -> dict:
         return self.collection.find_one({'vk_id': {'$eq': self.vk_id}})
 
-    def add_task(self, task_id: str):
+    def add_task(self, task_id: str) -> None:
         self.tasks[ObjectId(task_id)] = (TASK_PENDING, unix())
         self.collection.find_one_and_update({'_id': self.id}, {'tasks': self.tasks})
 
-    def task_success(self, task_id: str):
+    def task_success(self, task_id: str) -> None:
         self.tasks[ObjectId(task_id)] = (TASK_SUCCESS, unix())
         self.collection.find_one_and_update({'_id': self.id}, {'tasks': self.tasks})
 
-    def task_failed(self, task_id: str):
+    def task_failed(self, task_id: str) -> None:
         self.tasks[ObjectId(task_id)] = (TASK_FAILED, unix())
         self.collection.find_one_and_update({'_id': self.id}, {'tasks': self.tasks})
