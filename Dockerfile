@@ -14,4 +14,6 @@ RUN apt-get clean \
 
 COPY ./flask_app /app
 
+RUN mkdir logs
+
 CMD ["uwsgi", "--ini", "uwsgi.ini"]

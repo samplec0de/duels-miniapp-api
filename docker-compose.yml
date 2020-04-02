@@ -22,6 +22,24 @@ services:
 
   duels_miniapp_api:
     image: duels-miniapp-api
+    volumes:
+      - ./logs:/app/logs
+    links:
+      - "mongo:mongo"
+    depends_on:
+      - mongo
     build:
       context: .
       dockerfile: ./Dockerfile
+  mongo:
+    image: mongo:4.2.3-bionic
+    expose:
+      - 27017
+    ports:
+      - "27017-27019:27017-27019"
+    volumes:
+      - ./data/mongo:/data/db
+    env_file:
+      - mongo.env
+volumes:
+  mongo-duels:

@@ -1,8 +1,11 @@
+from typing import List
+
+from bson import ObjectId
 from pymongo import MongoClient
 
-from flask_app.EducationalTask import EducationalTask
-from flask_app.states import TASK_SUCCESS, TASK_FAILED, TASK_PENDING
-from flask_app.utility import unix
+from EducationalTask import EducationalTask
+from states import TASK_SUCCESS, TASK_FAILED, TASK_PENDING
+from utility import unix
 
 
 class AppUser:
@@ -34,7 +37,7 @@ class AppUser:
         """
         # tasks - словарь. ключ: task_id, значение: (статус, unix time stamp) (task_id: статус)
         subj_collection = self.mongo['data'][f'users_{subject}']
-        result = subj_collection.find_one({'_id': self.id})
+        result = subj_collection.find_one({'vk_id': self.vk_id})
         if result:
             tasks = result['tasks']
             tasks[task_id] = (TASK_PENDING, unix())
@@ -71,3 +74,16 @@ class AppUser:
         tasks = result['tasks']
         tasks[task_id] = (TASK_FAILED, unix())
         subj_collection.find_one_and_update({'vk_id': self.vk_id}, {'$set': {'tasks': tasks}})
+
+    def get_tasks(self, subject: str) -> List[ObjectId]:
+        """
+        Get a list of user seen tasks (solved or not)
+        :param subject:
+        :return:
+        """
+        subj_collection = self.mongo['data'][f'users_{subject}']
+        request = subj_collection.find_one({'vk_id': self.vk_id})
+        if request:
+            return list(request['tasks'].keys())
+        else:
+            return []

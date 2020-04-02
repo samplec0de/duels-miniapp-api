@@ -1,16 +1,37 @@
+import logging
+import random
+from logging.config import dictConfig
 from pathlib import Path
 
 from flask import Flask, jsonify, request
 from pymongo import MongoClient
 from yaml import safe_load
 
+from AppUser import AppUser
+from EducationalTask import EducationalTask
+from errors import UNKNOWN_SUBJECT, INVALID_USER_ID, NO_TASKS
+from utility import get_tasks
+
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://sys.stdout',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
 app = Flask(__name__)
 config = safe_load((Path(__file__).parent / "config.yml").read_text())
-client = MongoClient(f"mongodb://{config['mongo']['user']}:"
-                     f"{config['mongo']['password']}@{config['mongo']['host']}:"
+client = MongoClient(f"mongodb://{config['mongo']['user']}:{config['mongo']['password']}@{config['mongo']['host']}:"
                      f"{config['mongo']['port']}/{config['mongo']['authdb']}")
-tasks_db = client['tasks']
-data_db = client['data']
+ALLOWED_SUBJECTS = ['math', 'russian', 'informatics', 'english']
 
 
 @app.route('/')
@@ -26,9 +47,9 @@ def get_subject(subject, task_id):
         return jsonify({"error": "task id not found"}), 404
     tasks = {
         "math": {
-                0: "Сколько будет 1 + 2?",
-                1: "Сколько ног у двух людей?",
-                2: "Вычислите: 2 + 2 * 2"
+            0: "Сколько будет 1 + 2?",
+            1: "Сколько ног у двух людей?",
+            2: "Вычислите: 2 + 2 * 2"
         },
         "informatics": {
             0: "Сколько бит в одном байте?",
@@ -82,6 +103,31 @@ def check_answer():
         return jsonify({"correct": True, "correct_answer": correct}), 200
     else:
         return jsonify({"correct": False, "correct_answer": correct}), 200
+
+
+@app.route('/tasks/random/<subject>/<vk_user_id>', methods=['GET'])
+def random_task(subject: str, vk_user_id: str):
+    if subject not in ALLOWED_SUBJECTS:
+        return jsonify({'error': UNKNOWN_SUBJECT}), 400
+    if not vk_user_id.isdigit():
+        return jsonify({'error': INVALID_USER_ID}), 400
+    user = AppUser(vk_id=int(vk_user_id), mongo=client)
+    tasks = set(get_tasks(subject=subject, mongo=client))
+    user_tasks = set(user.get_tasks(subject=subject))
+    available_tasks = tasks.difference(user_tasks)
+    if not available_tasks:
+        return jsonify({'error': NO_TASKS}), 200
+    task_id = str(random.choice(list(available_tasks)))
+    user.give_task(task_id=task_id, subject=subject)
+    task = EducationalTask(task_id=task_id, subject=subject, mongo=client)
+    return jsonify(
+        {
+            'task_id': str(task.id),
+            'subject': task.subject,
+            'text': task.text,
+            'variants': task.variants
+        }
+    ), 200
 
 
 if __name__ == '__main__':
