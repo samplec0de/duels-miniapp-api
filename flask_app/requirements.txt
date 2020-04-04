@@ -1,4 +1,5 @@
 flask
 uWSGI
-pymongo
 PyYAML
+Flask-PyMongo
+jsonschema
