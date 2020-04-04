@@ -22,4 +22,3 @@ def get_tasks(subject: str, mongo: MongoClient) -> List[str]:
     collection = mongo['tasks'][subject]
     result = [str(item['_id']) for item in collection.find()]
     return result
-
