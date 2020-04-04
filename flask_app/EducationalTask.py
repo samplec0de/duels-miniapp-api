@@ -35,16 +35,16 @@ class EducationalTask:
         self.text = meta.get('text')
         self.answer = meta.get('answer')
         self.variants = meta.get('variants')
-        self.id = meta.get('id')
+        self.id = meta.get('_id')
         self.weight = meta.get('weight')
 
-    def create(self, subject: str, text: str, variants: List[str], answer: int, weight: int, database: Database) -> str:
+    def create(self, subject: str, text: str, variants: List[str], answer: int, weight: int, mongo: MongoClient) -> str:
         self.subject = subject
         self.text = text
         self.answer = answer
         self.variants = variants
         self.weight = weight
-        collection = database[subject]
+        collection = mongo['tasks'][subject]
         task_data = {
             'text': text,
             'answer': answer,
