@@ -2,14 +2,15 @@ import logging
 import random
 from logging.config import dictConfig
 from pathlib import Path
-
 from flask import Flask, jsonify, request
-from pymongo import MongoClient
+from states import TASK_PENDING
 from yaml import safe_load
-
+from flask_pymongo import PyMongo
+from jsonschema import validate, ValidationError
 from AppUser import AppUser
-from EducationalTask import EducationalTask
-from errors import UNKNOWN_SUBJECT, INVALID_USER_ID, NO_TASKS
+from EducationalTask import EducationalTask, TaskNotFound
+from errors import UNKNOWN_SUBJECT, INVALID_USER_ID, NO_TASKS, ANSWER_REQUIRED, SUBJECT_REQUIRED, TASK_REQUIRED, \
+    ANSWER_NOT_INDEX, USER_ID_REQUIRED, SECURITY_ERROR
 from utility import get_tasks
 
 dictConfig({
@@ -29,8 +30,11 @@ dictConfig({
 })
 app = Flask(__name__)
 config = safe_load((Path(__file__).parent / "config.yml").read_text())
-client = MongoClient(f"mongodb://{config['mongo']['user']}:{config['mongo']['password']}@{config['mongo']['host']}:"
-                     f"{config['mongo']['port']}/{config['mongo']['authdb']}")
+app.config["MONGO_URI"] = f"mongodb://{config['mongo']['user']}:" \
+                          f"{config['mongo']['password']}@{config['mongo']['host']}:" \
+                          f"{config['mongo']['port']}/{config['mongo']['authdb']}"
+flask_mongo = PyMongo(app)
+client = flask_mongo.cx
 ALLOWED_SUBJECTS = ['math', 'russian', 'informatics', 'english']
 
 
@@ -39,70 +43,58 @@ def hello_world():
     return jsonify({'version': config['core']['version']})
 
 
-@app.route('/tasks/<subject>/<task_id>', methods=['GET'])
-def get_subject(subject, task_id):
-    if subject not in ["math", "informatics", "russian"]:
-        return jsonify({"error": "unknown subject"}), 400
-    if not task_id.isdigit() or int(task_id) not in [0, 1, 2]:
-        return jsonify({"error": "task id not found"}), 404
-    tasks = {
-        "math": {
-            0: "Сколько будет 1 + 2?",
-            1: "Сколько ног у двух людей?",
-            2: "Вычислите: 2 + 2 * 2"
-        },
-        "informatics": {
-            0: "Сколько бит в одном байте?",
-            1: "Занимался ли информатикой Алан Тьюринг?",
-            2: "Существует ли в c++ библиотека iostream?"
-        },
-        "russian": {
-            0: "В каком слове не правильно выделена буква ударения: мАма, сИроты, питОн",
-            1: "А тут мне просто лень думать и верный ответ: 48",
-            2: "Снова лень думать, ответ: 2",
-        }
-    }
-    return jsonify({"subject": subject, "id": task_id, "task": tasks[subject][int(task_id)]}), 200
-
-
 @app.route('/check_answer', methods=['POST'])
 def check_answer():
     form_data = request.form
     if 'answer' not in form_data:
-        return jsonify({"error": "answer is required form-data key"}), 401
+        return jsonify({"error": ANSWER_REQUIRED}), 400
     if 'subject' not in form_data:
-        return jsonify({"error": "subject is required form-data key"}), 402
+        return jsonify({"error": SUBJECT_REQUIRED}), 400
     if 'task_id' not in form_data:
-        return jsonify({"error": "task_id is required form-data key"}), 403
+        return jsonify({"error": TASK_REQUIRED}), 400
+    if 'vk_user_id' not in form_data:
+        return jsonify({"error": USER_ID_REQUIRED}), 400
     answer = form_data['answer']
     subject = form_data['subject']
     task_id = form_data['task_id']
-    if subject not in ["math", "informatics", "russian"]:
-        return jsonify({"error": "unknown subject"}), 400
-    if not task_id.isdigit() or int(task_id) not in [0, 1, 2]:
-        return jsonify({"error": "task id not found"}), 404
-    answers = {
-        "math": {
-            0: "3",
-            1: "4",
-            2: "6"
-        },
-        "informatics": {
-            0: "8",
-            1: "да",
-            2: "да"
-        },
-        "russian": {
-            0: "сироты",
-            1: "48",
-            2: "2",
-        }
-    }
-    correct = answers[subject][int(task_id)]
-    if correct == answer:
-        return jsonify({"correct": True, "correct_answer": correct}), 200
+    vk_user_id = form_data['vk_user_id']
+    if subject not in ALLOWED_SUBJECTS:
+        return jsonify({"error": UNKNOWN_SUBJECT}), 400
+    if not answer.isdigit():
+        return jsonify({"error": ANSWER_NOT_INDEX}), 400
+    if not vk_user_id.isdigit():
+        return jsonify({"error": INVALID_USER_ID}), 400
+    user = AppUser(vk_id=int(vk_user_id), mongo=client)
+    task_state = user.task_state(task_id=task_id, subject=subject)
+    if task_state != TASK_PENDING:
+        return jsonify({"error": SECURITY_ERROR}), 403
+    try:
+        task = EducationalTask(task_id=task_id, subject=subject, mongo=client)
+    except TaskNotFound as e:
+        return jsonify({"error": e}), 404
+    answer_correct = int(answer) == task.answer
+    if answer_correct:
+        user.task_success(task_id=task_id, subject=subject)
     else:
-        return jsonify({"correct": False, "correct_answer": correct}), 200
+        user.task_failed(task_id=task_id, subject=subject)
+    return jsonify({"correct": answer_correct})
+
+
+@app.route('/correct_answer/<subject>/<task_id>/<vk_user_id>', methods=['GET'])
+def get_correct_answer(subject: str, task_id: str, vk_user_id: str):
+    if subject not in ALLOWED_SUBJECTS:
+        return jsonify({"error": UNKNOWN_SUBJECT}), 400
+    if not vk_user_id.isdigit():
+        return jsonify({"error": INVALID_USER_ID}), 400
+    user = AppUser(vk_id=int(vk_user_id), mongo=client)
+    task_state = user.task_state(task_id=task_id, subject=subject)
+    if task_state < 0 or task_state == TASK_PENDING:
+        return jsonify({"error": SECURITY_ERROR}), 403
+    try:
+        task = EducationalTask(task_id=task_id, subject=subject, mongo=client)
+    except TaskNotFound as e:
+        return jsonify({"error": e}), 404
+    return jsonify({"answer": task.variants[task.answer]}), 200
 
 
 @app.route('/tasks/random/<subject>/<vk_user_id>', methods=['GET'])
@@ -128,6 +120,42 @@ def random_task(subject: str, vk_user_id: str):
             'variants': task.variants
         }
     ), 200
+
+
+@app.route('/tasks', methods=['POST'])
+def add_task():
+    json_data = request.json
+    schema = {
+        "type": "object",
+        "properties": {
+            "subject": {
+                "type": "string",
+                "pattern": f"^({'|'.join(ALLOWED_SUBJECTS)})$"
+            },
+            "text": {"type": "string"},
+            "variants": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            },
+            "answer": {"type": "number"},
+            "weight": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+    }
+    try:
+        validate(instance=json_data, schema=schema)
+    except ValidationError as e:
+        return jsonify({"schema_error": e}), 400
+    task = EducationalTask()
+    json_data['mongo'] = client
+    task.create(**json_data)
+    json_data['_id'] = str(task.id)
+    json_data.pop('mongo', None)
+    return json_data, 201
 
 
 if __name__ == '__main__':
