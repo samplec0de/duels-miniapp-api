@@ -4,7 +4,7 @@ from bson import ObjectId
 from pymongo import MongoClient
 
 from EducationalTask import EducationalTask
-from states import TASK_SUCCESS, TASK_FAILED, TASK_PENDING
+from states import TASK_SUCCESS, TASK_FAILED, TASK_PENDING, NOT_STATED
 from utility import unix
 
 
@@ -27,6 +27,21 @@ class AppUser:
 
     def _find(self) -> dict:
         return self.mongo['data']['users'].find_one({'vk_id': self.vk_id})
+
+    def task_state(self, task_id: str, subject: str) -> int:
+        """
+        Get task state for user
+        :param task_id:
+        :param subject:
+        :return:
+        """
+        subj_collection = self.mongo['data'][f'users_{subject}']
+        result = subj_collection.find_one({'vk_id': self.vk_id})
+        if result:
+            tasks = result['tasks']
+            if task_id in tasks:
+                return tasks[task_id][0]
+        return NOT_STATED
 
     def give_task(self, task_id: str, subject: str) -> None:
         """
