@@ -60,8 +60,6 @@ def check_answer():
     vk_user_id = str(form_data['vk_user_id'])
     if subject not in ALLOWED_SUBJECTS:
         return jsonify({"error": UNKNOWN_SUBJECT}), 400
-    if not answer.isdigit():
-        return jsonify({"error": ANSWER_NOT_INDEX}), 400
     if not vk_user_id.isdigit():
         return jsonify({"error": INVALID_USER_ID}), 400
     user = AppUser(vk_id=int(vk_user_id), mongo=client)
@@ -72,7 +70,7 @@ def check_answer():
         task = EducationalTask(task_id=task_id, subject=subject, mongo=client)
     except TaskNotFound as e:
         return jsonify({"error": e}), 404
-    answer_correct = int(answer) == task.answer
+    answer_correct = answer.strip() == task.answer.strip()
     if answer_correct:
         user.task_success(task_id=task_id, subject=subject)
     else:
@@ -94,7 +92,7 @@ def get_correct_answer(subject: str, task_id: str, vk_user_id: str):
         task = EducationalTask(task_id=task_id, subject=subject, mongo=client)
     except TaskNotFound as e:
         return jsonify({"error": e}), 404
-    return jsonify({"answer": task.variants[task.answer], "points": task.weight}), 200
+    return jsonify({"answer": task.answer, "points": task.weight}), 200
 
 
 @app.route('/tasks/random/<subject>/<vk_user_id>', methods=['GET'])
@@ -117,7 +115,7 @@ def random_task(subject: str, vk_user_id: str):
             'task_id': str(task.id),
             'subject': task.subject,
             'text': task.text,
-            'variants': task.variants
+            'variants': list(random.shuffle(task.variants))
         }
     ), 200
 
@@ -139,7 +137,7 @@ def add_task():
                     "type": "string"
                 }
             },
-            "answer": {"type": "number"},
+            "answer": {"type": "string"},
             "weight": {
                 "type": "number",
                 "minimum": 0

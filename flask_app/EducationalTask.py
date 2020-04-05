@@ -19,7 +19,7 @@ class EducationalTask:
     def __init__(self, task_id: str = None, subject: str = None, mongo: MongoClient = None):
         self.subject = None  # предмет
         self.text = None  # текст вопроса
-        self.answer = None  # индекс правильного ответа (с нуля)
+        self.answer = None  # правильный ответ строкой
         self.variants = None  # массив варивантов ответа
         self.id = None  # ObjectId в mongo
         self.weight = None  # сколько баллов будет начислено в случае верного решения
@@ -38,7 +38,7 @@ class EducationalTask:
         self.id = meta.get('_id')
         self.weight = meta.get('weight')
 
-    def create(self, subject: str, text: str, variants: List[str], answer: int, weight: int, mongo: MongoClient) -> str:
+    def create(self, subject: str, text: str, variants: List[str], answer: str, weight: int, mongo: MongoClient) -> str:
         self.subject = subject
         self.text = text
         self.answer = answer

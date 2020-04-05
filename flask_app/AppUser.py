@@ -37,7 +37,7 @@ class AppUser:
         """
         subj_collection = self.mongo['data'][f'users_{subject}']
         result = subj_collection.find_one({'vk_id': self.vk_id})
-        if result:
+        if result and 'tasks' in result:
             tasks = result['tasks']
             if task_id in tasks:
                 return tasks[task_id][0]
