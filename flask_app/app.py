@@ -94,7 +94,7 @@ def get_correct_answer(subject: str, task_id: str, vk_user_id: str):
         task = EducationalTask(task_id=task_id, subject=subject, mongo=client)
     except TaskNotFound as e:
         return jsonify({"error": e}), 404
-    return jsonify({"answer": task.variants[task.answer]}), 200
+    return jsonify({"answer": task.variants[task.answer], "points": task.weight}), 200
 
 
 @app.route('/tasks/random/<subject>/<vk_user_id>', methods=['GET'])
