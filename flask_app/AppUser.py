@@ -85,7 +85,7 @@ class AppUser:
         :return:
         """
         subj_collection = self.mongo['data'][f'users_{subject}']
-        result = subj_collection.find_one({'_id': self.id})
+        result = subj_collection.find_one({'vk_id': self.vk_id})
         tasks = result['tasks']
         tasks[task_id] = (TASK_FAILED, unix())
         subj_collection.find_one_and_update({'vk_id': self.vk_id}, {'$set': {'tasks': tasks}})
