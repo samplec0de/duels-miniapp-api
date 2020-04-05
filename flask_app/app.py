@@ -10,7 +10,7 @@ from jsonschema import validate, ValidationError
 from AppUser import AppUser
 from EducationalTask import EducationalTask, TaskNotFound
 from errors import UNKNOWN_SUBJECT, INVALID_USER_ID, NO_TASKS, ANSWER_REQUIRED, SUBJECT_REQUIRED, TASK_REQUIRED, \
-    ANSWER_NOT_INDEX, USER_ID_REQUIRED, SECURITY_ERROR
+    USER_ID_REQUIRED, SECURITY_ERROR, NO_CORRECT_ANSWER
 from utility import get_tasks
 
 dictConfig({
@@ -110,12 +110,14 @@ def random_task(subject: str, vk_user_id: str):
     task_id = str(random.choice(list(available_tasks)))
     user.give_task(task_id=task_id, subject=subject)
     task = EducationalTask(task_id=task_id, subject=subject, mongo=client)
+    variants = task.variants
+    random.shuffle(variants)
     return jsonify(
         {
             'task_id': str(task.id),
             'subject': task.subject,
             'text': task.text,
-            'variants': list(random.shuffle(task.variants))
+            'variants': variants
         }
     ), 200
 
@@ -148,6 +150,10 @@ def add_task():
         validate(instance=json_data, schema=schema)
     except ValidationError as e:
         return jsonify({"schema_error": e}), 400
+    json_data['answer'] = json_data['answer'].strip()
+    json_data['variants'] = [variant.strip() for variant in json_data['variants']]
+    if json_data['answer'] not in json_data['variants']:
+        return jsonify({"error": NO_CORRECT_ANSWER}), 400
     task = EducationalTask()
     json_data['mongo'] = client
     task.create(**json_data)
