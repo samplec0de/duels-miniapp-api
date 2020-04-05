@@ -57,7 +57,7 @@ def check_answer():
     answer = form_data['answer']
     subject = form_data['subject']
     task_id = form_data['task_id']
-    vk_user_id = form_data['vk_user_id']
+    vk_user_id = str(form_data['vk_user_id'])
     if subject not in ALLOWED_SUBJECTS:
         return jsonify({"error": UNKNOWN_SUBJECT}), 400
     if not answer.isdigit():
