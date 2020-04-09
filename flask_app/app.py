@@ -122,6 +122,14 @@ def random_task(subject: str, vk_user_id: str):
     ), 200
 
 
+@app.route('/rating/<vk_user_id>', methods=['GET'])
+def user_rating(vk_user_id: str):
+    if not vk_user_id.isdigit():
+        return jsonify({'error': INVALID_USER_ID}), 400
+    user = AppUser(vk_id=int(vk_user_id), mongo=client)
+    return jsonify({"user_id": vk_user_id, "rating": user.rating})
+
+
 @app.route('/tasks', methods=['POST'])
 def add_task():
     json_data = request.json
