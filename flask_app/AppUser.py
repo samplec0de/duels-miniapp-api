@@ -23,6 +23,7 @@ class AppUser:
             self.rating = data.get('rating')
         else:
             user = {'vk_id': self.vk_id, 'rating': 0}
+            self.rating = 0
             self.id = self.mongo['data']['users'].insert_one(user).inserted_id
 
     def _find(self) -> dict:
